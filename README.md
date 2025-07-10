@@ -41,15 +41,16 @@ jumplist_parser --help
 ```
 
 ```bash
-Developed by: AbdulRhman Alfaifi <@A__ALFAIFI>
----
-Windows Jumplist Files Parser (jumplist_parser 0.1.0)
+Created By: AbdulRhman Alfaifi <@A__ALFAIFI>
+Version: v0.1.0
+Reference: https://u0041.co/posts/articals/jumplist-files-artifacts/
+
+Windows Jumplist Files Parser
 
 Usage: jumplist_parser [OPTIONS]
 
 Options:
-  -p, --path <PATH>                    Path(s) to Jumplist files to be parsed - accepts glob (defaults to 
-                                       'AutomaticDestinations' & 'CustomDestinations' for all users)
+  -p, --path <PATH>                    Path(s) to Jumplist files to be parsed - accepts glob (defaults to 'AutomaticDestinations' & 'CustomDestinations' for all users)
   -o, --output <FILE>                  The file path to write the output to [default: stdout]
       --output-format <output-format>  Output format [default: csv] [possible values: csv, jsonl, json]
       --no-headers                     Don't print headers when using CSV as the output format

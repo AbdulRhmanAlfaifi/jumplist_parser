@@ -30,9 +30,13 @@ fn parse_cli_args() -> ArgMatches {
         .version(env!("CARGO_PKG_VERSION"))
         .author(clap::crate_authors!())
         .help_template("\
-Developed by: {author}
----
-{about} ({bin} {version})
+{before-help}
+
+Created By: {author}
+Version: v{version}
+Reference: https://u0041.co/posts/articals/jumplist-files-artifacts/
+
+{about}
 
 {usage-heading} {usage}
 
