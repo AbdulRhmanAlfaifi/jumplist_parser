@@ -1,0 +1,25 @@
+[package]
+name = "jumplist_parser"
+version = "0.1.0"
+authors = ["AbdulRhman Alfaifi <@A__ALFAIFI>"]
+edition = "2018"
+description = "A Rust library to parse Windows Jumplist files (automaticDestinations-ms and customDestinations-ms)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/AbdulRhmanAlfaifi/jumplist_parser"
+homepage = "https://github.com/AbdulRhmanAlfaifi/jumplist_parser"
+keywords = ["jumplist", "windows", "forensics", "lnk", "parser", "dfir", "blueteam", "artifacts"]
+categories = ["parser-implementations", "filesystem", "command-line-utilities", "parsing"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cfb = "0.10.0"
+byteorder = "1.5.0"
+winparsingtools = "2.1.3"
+serde = { features = ["derive"], version="1.0.219" }
+serde_json = "1.0.140"
+lnk_parser = "0.4.1"
+clap = { version = "4.5.41", features = ["cargo"] }
+glob = "0.3.2"
+thiserror = "2.0.12"
+phf = { version = "0.12.1", features = ["macros"] }

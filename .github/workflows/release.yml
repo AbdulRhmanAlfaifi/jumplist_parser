@@ -1,0 +1,49 @@
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+    name: Release - ${{ matrix.platform.release_for }}
+    strategy:
+      matrix:
+        platform:
+          - release_for: linux_x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            bin: jumplist_parser
+            name: jumplist_parser
+            ext: elf
+            command: build
+            
+          - release_for: windows_x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: jumplist_parser.exe
+            name: jumplist_parser
+            ext: exe
+            command: build
+
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: ${{ matrix.platform.command }}
+          target: ${{ matrix.platform.target }}
+          args: "--release"
+
+      - name: Rename Files
+        shell: bash
+        run: |
+          VERSION=${{ github.ref_name }}
+          NEW_NAME="${{ matrix.platform.name }}_${VERSION}.${{ matrix.platform.ext }}"
+          mv target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} "$NEW_NAME"
+          echo "NEW_NAME=$NEW_NAME" >> $GITHUB_ENV
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.NEW_NAME }}
