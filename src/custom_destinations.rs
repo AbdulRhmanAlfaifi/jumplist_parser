@@ -2,22 +2,22 @@
 //! These files are part of the Jump List feature and typically
 //! contain LNK entries grouped under different categories.
 
-
 use byteorder::{LittleEndian, ReadBytesExt};
 use lnk_parser::LNKParser;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::errors::JumplistParserError;
 use crate::_Normalize;
-use winparsingtools::{utils::read_utf16_string, traits::Normalize};
+use crate::errors::JumplistParserError;
+use winparsingtools::{traits::Normalize, utils::read_utf16_string};
 
 /// Category types used in CustomDestinations.
 /// - `Custom`: User-defined or application-defined category.
 /// - `Known`: Special categories like "Recent" or "Frequent".
 /// - `Task`: Represents shortcut tasks like creating new project.
 #[derive(Debug, Serialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
 pub enum CatagoryType {
     Custom = 0x00,
     Known = 0x01,
@@ -65,12 +65,26 @@ impl CustomDestinationsHeader {
 }
 
 /// IDs of categories. either `Frequent` or `Recent`.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[repr(u32)]
 pub enum CategoryID {
-    Frequent = 0x00000001,
-    Recent = 0x00000002,
+    Frequent = 0x01,
+    Recent = 0x02,
     /// Unknown or unrecognized category ID.
-    Unknown = 0xffffffff,
+    Unknown(u32),
+}
+
+impl Serialize for CategoryID {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            CategoryID::Frequent => serializer.serialize_str("frequent"),
+            CategoryID::Recent => serializer.serialize_str("recent"),
+            CategoryID::Unknown(val) => serializer.serialize_str(&format!("{:04X}", val)),
+        }
+    }
 }
 
 /// Represents a category inside a CustomDestinations file.
@@ -180,7 +194,7 @@ impl CustomDestinations {
                 let id = match id {
                     1 => CategoryID::Frequent,
                     2 => CategoryID::Recent,
-                    _ => CategoryID::Unknown,
+                    x => CategoryID::Unknown(x),
                 };
 
                 categories.push(Catagory {
@@ -245,16 +259,17 @@ impl _Normalize for CustomDestinations {
                     let mut lnk_normalized = lnk.normalize();
                     let name_string = match lnk.get_name_string() {
                         Some(s) => s.to_string(),
-                        None => String::from("")
+                        None => String::from(""),
                     };
 
                     let command_line_arguments = match lnk.get_command_line_arguments() {
                         Some(s) => s.to_string(),
-                        None => String::from("")
+                        None => String::from(""),
                     };
                     lnk_normalized.insert("name_string".to_string(), name_string);
-                    lnk_normalized.insert("command_line_arguments".to_string(), command_line_arguments);
-                    
+                    lnk_normalized
+                        .insert("command_line_arguments".to_string(), command_line_arguments);
+
                     results.push(lnk_normalized);
                 }
             }

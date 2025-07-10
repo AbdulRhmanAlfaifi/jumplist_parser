@@ -2,7 +2,6 @@
 use phf;
 use phf::phf_map;
 
-
 /// Taken from : <https://github.com/EricZimmerman/JumpList/blob/master/JumpList/Resources/AppIDs.txt>
 pub static APPID_TO_NAME: phf::Map<&'static str, &'static str> = phf_map! {
     "560d789a6a42ad5a" => "DC++ 0.261 / 0.698 / 0.782 (r2402.1)",

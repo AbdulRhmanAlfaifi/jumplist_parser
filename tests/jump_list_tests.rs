@@ -5,20 +5,17 @@ fn parse_and_print_glob(pattern: &str) {
     let paths = glob(pattern).expect("Failed to read glob pattern");
     for path in paths {
         match path {
-            Ok(p) => {
-                match JumplistParser::from_path(p.to_str().unwrap()) {
-                    Ok(destlist) => {
-                        let res = serde_json::to_string(&destlist).unwrap();
-                        println!("{}", res);
-                    }
-                    Err(e) => eprintln!("Failed to parse file '{}': {}", p.display(), e),
+            Ok(p) => match JumplistParser::from_path(p.to_str().unwrap()) {
+                Ok(destlist) => {
+                    let res = serde_json::to_string(&destlist).unwrap();
+                    println!("{}", res);
                 }
-            }
+                Err(e) => eprintln!("Failed to parse file '{}': {}", p.display(), e),
+            },
             Err(e) => eprintln!("Error reading path: {}", e),
         }
     }
 }
-
 
 #[cfg(test)]
 #[test]

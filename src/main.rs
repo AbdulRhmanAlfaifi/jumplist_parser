@@ -132,19 +132,17 @@ fn main() {
 
     #[cfg(target_os = "windows")]
     // Default paths for Jumplist files
-    let mut jumplist_paths =
-        vec![
-                r"C:\Users\*\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\*ms",
-                r"C:\Users\*\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations\*ms"
-            ];
+    let mut jumplist_paths = vec![
+        r"C:\Users\*\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations\*ms",
+        r"C:\Users\*\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations\*ms",
+    ];
 
     #[cfg(target_os = "linux")]
     // Default paths for Jumplist files while using WSL
-    let mut jumplist_paths =
-        vec![
-                r"/mnt/c/Users/*/AppData/Roaming/Microsoft/Windows/Recent/AutomaticDestinations/*ms",
-                r"/mnt/c/Users/*/AppData/Roaming/Microsoft/Windows/Recent/CustomDestinations/*ms"
-            ];
+    let mut jumplist_paths = vec![
+        r"/mnt/c/Users/*/AppData/Roaming/Microsoft/Windows/Recent/AutomaticDestinations/*ms",
+        r"/mnt/c/Users/*/AppData/Roaming/Microsoft/Windows/Recent/CustomDestinations/*ms",
+    ];
 
     if let Some(paths) = args.get_many::<String>("path") {
         jumplist_paths = paths.map(|s| s.as_str()).collect::<Vec<&str>>();

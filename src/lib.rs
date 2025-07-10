@@ -6,15 +6,18 @@
 //!
 
 pub mod appids;
+pub mod custom_destinations;
 pub mod destlist;
 pub mod errors;
-pub mod custom_destinations;
 
+use cfb::CompoundFile;
 use destlist::DestList;
 use errors::JumplistParserError;
-use cfb::CompoundFile;
 use std::{
-    collections::HashMap, fmt::{self, Display}, fs::File, io::{Cursor, Read}
+    collections::HashMap,
+    fmt::{self, Display},
+    fs::File,
+    io::{Cursor, Read},
 };
 
 use winparsingtools::traits::Normalize;
@@ -51,7 +54,6 @@ pub enum JumplistData {
     CustomDestinations(CustomDestinations),
 }
 
-
 /// Parse & represent a Jumplist file data.
 #[derive(Debug, Serialize)]
 pub struct JumplistParser {
@@ -68,8 +70,11 @@ impl JumplistParser {
     /// # Arguments
     /// * `r` - Cursor over the file contents.
     /// * `jumplist_type` - Whether it's automatic or custom format.
-    
-    pub fn from_reader(r: &mut Cursor<Vec<u8>>, jumplist_type: JumplistType) -> Result<Self, JumplistParserError> {
+
+    pub fn from_reader(
+        r: &mut Cursor<Vec<u8>>,
+        jumplist_type: JumplistType,
+    ) -> Result<Self, JumplistParserError> {
         match jumplist_type {
             JumplistType::Automatic => {
                 let mut parser = match CompoundFile::open(r) {
@@ -83,10 +88,10 @@ impl JumplistParser {
                         file!().to_string(),
                     )
                 })?;
-        
+
                 let mut destlist_data: Cursor<Vec<u8>> = Cursor::new(vec![]);
                 let entries: Vec<cfb::Entry> = parser.walk().collect();
-        
+
                 for entry in entries.iter() {
                     if entry.name() == "DestList" {
                         if entry.len() > 0 {
@@ -96,23 +101,26 @@ impl JumplistParser {
                                 stream.read_to_end(&mut buffer).unwrap();
                                 buffer
                             };
-        
+
                             destlist_data = Cursor::new(dl_data);
                         } else {
                             // TODO: Handle empty DestList
                         }
                     }
                 }
-        
-                let data =
-                    match destlist::DestList::from_reader(&mut destlist_data, Some(entries), &mut parser) {
-                        Ok(dlist) => Some(dlist),
-                        Err(e) => {
-                            eprintln!("ERROR: {}", e);
-                            None
-                        }
-                    };
-        
+
+                let data = match destlist::DestList::from_reader(
+                    &mut destlist_data,
+                    Some(entries),
+                    &mut parser,
+                ) {
+                    Ok(dlist) => Some(dlist),
+                    Err(e) => {
+                        eprintln!("ERROR: {}", e);
+                        None
+                    }
+                };
+
                 match data {
                     Some(results) => Ok(Self {
                         app_id: None,
@@ -127,7 +135,7 @@ impl JumplistParser {
                         file!().to_string(),
                     )),
                 }
-            },
+            }
             JumplistType::Custom => {
                 let results = CustomDestinations::from_reader(r)?;
                 Ok(Self {
@@ -139,7 +147,6 @@ impl JumplistParser {
                 })
             }
         }
-        
     }
 
     /// Parse a Jumplist from a file on disk.
@@ -166,7 +173,7 @@ impl JumplistParser {
     ///     Ok(())
     /// }
     /// ```
-    
+
     pub fn from_path(path: &str) -> Result<Self, JumplistParserError> {
         let mut file = File::open(path).map_err(|e| {
             JumplistParserError::JumplistParser(
@@ -190,17 +197,23 @@ impl JumplistParser {
         let mut app_name = String::new();
 
         let file_name = std::path::PathBuf::from(path)
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
         let jumplist_type = match file_name.ends_with(".automaticDestinations-ms") {
             true => JumplistType::Automatic,
-            false =>  match file_name.ends_with(".customDestinations-ms") {
+            false => match file_name.ends_with(".customDestinations-ms") {
                 true => JumplistType::Custom,
-                false => return Err(JumplistParserError::FileType(file_name, line!(), file!().to_string()))
-            }
+                false => {
+                    return Err(JumplistParserError::FileType(
+                        file_name,
+                        line!(),
+                        file!().to_string(),
+                    ))
+                }
+            },
         };
 
         if let Some(stem) = file_name.split('.').next() {
@@ -248,7 +261,7 @@ impl _Normalize for JumplistParser {
                     results.push(e);
                 }
                 results
-            },
+            }
             JumplistData::CustomDestinations(data) => {
                 let data = data.normalize();
                 for mut entry in data {

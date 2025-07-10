@@ -263,7 +263,6 @@ impl DestList {
         lnks: Option<Vec<cfb::Entry>>,
         parser: &mut cfb::CompoundFile<&mut R>,
     ) -> Result<Self, JumplistParserError> {
-
         let dlist_size = match &lnks {
             Some(entries) => {
                 let mut size = 0;
@@ -274,17 +273,15 @@ impl DestList {
                 }
                 size
             }
-            None => 0
+            None => 0,
         };
-        let header = match dlist_size { 
-            0 => {
-                Ok(DestListHeader {
-                    version: 0,
-                    number_of_entries: 0,
-                    number_of_pinned_entries: 0,
-                })
-            }
-            _ => DestListHeader::from_reader(r)
+        let header = match dlist_size {
+            0 => Ok(DestListHeader {
+                version: 0,
+                number_of_entries: 0,
+                number_of_pinned_entries: 0,
+            }),
+            _ => DestListHeader::from_reader(r),
         }?;
         let mut entries: Vec<DestListEntry> = vec![];
 
@@ -296,7 +293,15 @@ impl DestList {
                             if format!("{:x?}", entry.entry_number) == lnk.name() {
                                 let lnk_data = {
                                     let stream = parser.open_stream(lnk.path()).map_err(|e| {
-                                        JumplistParserError::LnkEntry(format!("Error reading LNK file '{}', CFB_ERROR: {}", lnk.name(), e), line!(), file!().to_string())
+                                        JumplistParserError::LnkEntry(
+                                            format!(
+                                                "Error reading LNK file '{}', CFB_ERROR: {}",
+                                                lnk.name(),
+                                                e
+                                            ),
+                                            line!(),
+                                            file!().to_string(),
+                                        )
                                     });
 
                                     match stream {
@@ -304,12 +309,11 @@ impl DestList {
                                             let mut buffer = Vec::new();
                                             s.read_to_end(&mut buffer).unwrap();
                                             buffer
-
                                         }
                                         Err(e) => {
                                             eprintln!("{}", e);
                                             continue;
-                                        } 
+                                        }
                                     }
                                 };
 
@@ -341,17 +345,17 @@ impl Normalize for DestListEntry {
                 let mut lnk_normalized = l.normalize();
                 let name_string = match l.get_name_string() {
                     Some(s) => s.to_string(),
-                    None => String::from("")
+                    None => String::from(""),
                 };
 
                 let command_line_arguments = match l.get_command_line_arguments() {
                     Some(s) => s.to_string(),
-                    None => String::from("")
+                    None => String::from(""),
                 };
                 lnk_normalized.insert("name_string".to_string(), name_string);
                 lnk_normalized.insert("command_line_arguments".to_string(), command_line_arguments);
                 lnk_normalized
-            },
+            }
             None => results,
         }
     }
