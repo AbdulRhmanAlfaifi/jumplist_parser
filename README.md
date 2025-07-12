@@ -1,8 +1,15 @@
 # Jumplist Parser
-
-[![Crates.io](https://img.shields.io/crates/v/jumplist_parser)](https://crates.io/crates/jumplist_parser)
-[![Docs.rs](https://docs.rs/jumplist_parser/badge.svg)](https://docs.rs/jumplist_parser)
-[![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/jumplist_parser)](#license)
+<div align="center">
+  <a href="https://crates.io/crates/lnk_parser">
+    <img src="https://img.shields.io/crates/v/lnk_parser" alt="Crates.io">
+  </a>
+  <a href="https://docs.rs/lnk_parser">
+    <img src="https://docs.rs/lnk_parser/badge.svg" alt="Docs.rs">
+  </a>
+  <a href="#license">
+    <img src="https://img.shields.io/crates/l/lnk_parser" alt="License">
+  </a>
+</div>
 
 This repository is a Rust library and CLI tool for parsing **Windows Jumplist artifacts**
 
