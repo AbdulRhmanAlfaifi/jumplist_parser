@@ -237,16 +237,16 @@ impl JumplistParser {
 }
 
 /// Trait to normalize parsed structures into a consistent `key` and `value` format.
-pub trait _Normalize {
+pub trait Flaten {
     /// Converts the structure into a list of `key` and `value` maps.
-    fn normalize(&self) -> Vec<HashMap<String, String>>;
+    fn flaten(&self) -> Vec<HashMap<String, String>>;
 }
 
-impl _Normalize for JumplistParser {
+impl Flaten for JumplistParser {
     /// Normalize parsed Jumplist entries to flat `key` and `value` maps.
     ///
     /// Adds a `jumplist_file_path` key for traceability.
-    fn normalize(&self) -> Vec<HashMap<String, String>> {
+    fn flaten(&self) -> Vec<HashMap<String, String>> {
         let mut results: Vec<HashMap<String, String>> = Vec::new();
 
         match &self.data {
@@ -263,7 +263,7 @@ impl _Normalize for JumplistParser {
                 results
             }
             JumplistData::CustomDestinations(data) => {
-                let data = data.normalize();
+                let data = data.flaten();
                 for mut entry in data {
                     let path = match &self.source_path {
                         Some(p) => p.to_owned(),

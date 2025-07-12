@@ -5,10 +5,11 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use lnk_parser::LNKParser;
 use serde::{Serialize, Serializer};
+use winparsingtools::structs::Guid;
 use std::collections::HashMap;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Cursor, Read, Seek, SeekFrom};
 
-use crate::_Normalize;
+use crate::Flaten;
 use crate::errors::JumplistParserError;
 use winparsingtools::{traits::Normalize, utils::read_utf16_string};
 
@@ -66,12 +67,13 @@ impl CustomDestinationsHeader {
 
 /// IDs of categories. either `Frequent` or `Recent`.
 #[derive(Debug)]
-#[repr(u32)]
+#[repr(i32)]
 pub enum CategoryID {
     Frequent = 0x01,
     Recent = 0x02,
+    None = -1,
     /// Unknown or unrecognized category ID.
-    Unknown(u32),
+    Unknown(i32),
 }
 
 impl Serialize for CategoryID {
@@ -82,6 +84,7 @@ impl Serialize for CategoryID {
         match self {
             CategoryID::Frequent => serializer.serialize_str("frequent"),
             CategoryID::Recent => serializer.serialize_str("recent"),
+            CategoryID::None => serializer.serialize_str("none"),
             CategoryID::Unknown(val) => serializer.serialize_str(&format!("{:04X}", val)),
         }
     }
@@ -166,13 +169,33 @@ impl CustomDestinations {
                 for _ in 0..num_of_entries.unwrap() {
                     // Ignore the Classs ID. From my testing this is always a LNK strcuture, however it should be checked if it is '00021401-0000-0000-c000-000000000046'
                     // Then it is a LNK file, otherwise it is a shellitem.
-                    reader.seek(SeekFrom::Current(16)).map_err(|e| {
-                        JumplistParserError::FileStructure(
-                            e.to_string(),
+                    // reader.seek(SeekFrom::Current(16)).map_err(|e| {
+                    //     JumplistParserError::FileStructure(
+                    //         e.to_string(),
+                    //         line!(),
+                    //         file!().to_string(),
+                    //     )
+                    // })?;
+
+                    let mut guid_data = [0;16];
+                    reader.read_exact(&mut guid_data).map_err(|e| {
+                        JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
+                    })?;
+
+                    let mut r = Cursor::new(guid_data);
+                    let guid = Guid::from_reader(&mut r).map_err(|e| {
+                        JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
+                    })?;
+                    
+                    // Check if the GUID is the expected one for LNK entries
+                    if guid.to_string() != "00021401-0000-0000-C000-000000000046" {
+                        return Err(JumplistParserError::FileStructure(
+                            format!("Custom Category with unknown entry GUID '{}'", guid),
                             line!(),
                             file!().to_string(),
-                        )
-                    })?;
+                        ));
+                    }
+
                     let lnk_entry = LNKParser::from_reader(reader).map_err(|e| {
                         JumplistParserError::LnkEntry(e.to_string(), line!(), file!().to_string())
                     })?;
@@ -187,13 +210,14 @@ impl CustomDestinations {
                     id: None,
                 });
             } else if r#type == CatagoryType::Known {
-                let id = reader.read_u32::<LittleEndian>().map_err(|e| {
+                let id = reader.read_i32::<LittleEndian>().map_err(|e| {
                     JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
                 })?;
 
                 let id = match id {
                     1 => CategoryID::Frequent,
                     2 => CategoryID::Recent,
+                    -1 => CategoryID::None,
                     x => CategoryID::Unknown(x),
                 };
 
@@ -211,13 +235,33 @@ impl CustomDestinations {
                 for _ in 0..num_of_entries.unwrap() {
                     // Ignore the Classs ID. From my testing this is always a LNK strcuture, however it should be checked if it is '00021401-0000-0000-c000-000000000046'
                     // Then it is a LNK file, otherwise it is a shellitem.
-                    reader.seek(SeekFrom::Current(16)).map_err(|e| {
-                        JumplistParserError::FileStructure(
-                            e.to_string(),
+                    // reader.seek(SeekFrom::Current(16)).map_err(|e| {
+                    //     JumplistParserError::FileStructure(
+                    //         e.to_string(),
+                    //         line!(),
+                    //         file!().to_string(),
+                    //     )
+                    // })?;
+
+                    let mut guid_data = [0;16];
+                    reader.read_exact(&mut guid_data).map_err(|e| {
+                        JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
+                    })?;
+
+                    let mut r = Cursor::new(guid_data);
+                    let guid = Guid::from_reader(&mut r).map_err(|e| {
+                        JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
+                    })?;
+
+                    // Check if the GUID is the expected one for LNK entries
+                    if guid.to_string() != "00021401-0000-0000-C000-000000000046" {
+                        return Err(JumplistParserError::FileStructure(
+                            format!("Task Category with unknown entry GUID '{}'", guid),
                             line!(),
                             file!().to_string(),
-                        )
-                    })?;
+                        ));
+                    }
+
                     let lnk_entry = LNKParser::from_reader(reader).map_err(|e| {
                         JumplistParserError::LnkEntry(e.to_string(), line!(), file!().to_string())
                     })?;
@@ -245,13 +289,13 @@ impl CustomDestinations {
     }
 }
 
-impl _Normalize for CustomDestinations {
+impl Flaten for CustomDestinations {
     /// Normalizes all LNK entries within the CustomDestinations file
     /// into a vector of `key` and `value` maps by exteracting the most important fields.
     ///
     /// Fields like `name_string` and `command_line_arguments` are extracted
     /// to provide meaningful descriptions of the LNK contents.
-    fn normalize(&self) -> Vec<HashMap<String, String>> {
+    fn flaten(&self) -> Vec<HashMap<String, String>> {
         let mut results: Vec<HashMap<String, String>> = Vec::new();
         for entry in &self.entries {
             if let Some(lnks) = &entry.entries {

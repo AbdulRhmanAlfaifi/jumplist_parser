@@ -1,8 +1,6 @@
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use glob::glob;
-use jumplist_parser::errors::JumplistParserError;
-use jumplist_parser::JumplistParser;
-use jumplist_parser::_Normalize;
+use jumplist_parser::{errors::JumplistParserError, Flaten, JumplistParser};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs::File;
@@ -85,7 +83,7 @@ Reference: https://u0041.co/posts/articals/jumplist-files-artifacts/
 fn output_data_csv(parsed: JumplistParser) -> String {
     let app_id = &parsed.app_id.clone().unwrap_or_default().to_owned();
     let app_name = &parsed.app_name.clone().unwrap_or_default().to_owned();
-    let data = parsed.normalize();
+    let data = parsed.flaten();
     let mut records: Vec<String> = vec![];
     for i in 0..data.len() {
         let row = data[i].to_owned();
@@ -106,7 +104,6 @@ fn output_data_csv(parsed: JumplistParser) -> String {
             row.get("target_hostname").unwrap(),
         ));
     }
-    // println!("Records: {:?}", records);
     records.join("\n")
 }
 
@@ -165,7 +162,7 @@ fn main() {
                             OutputFormat::JSONL => {
                                 let json_data;
                                 if normalize {
-                                    let mut normalized = parsed.normalize();
+                                    let mut normalized = parsed.flaten();
                                     normalized.iter_mut().for_each(|e| {
                                         e.insert(
                                             "app_id".to_string(),
@@ -176,9 +173,9 @@ fn main() {
                                             parsed.app_name.clone().unwrap_or_default(),
                                         );
                                     });
-                                    json_data = serde_json::to_string(&normalized).unwrap();
+                                    json_data = serde_json::to_string(&normalized).unwrap_or("{}".to_string());
                                 } else {
-                                    json_data = serde_json::to_string(&parsed).unwrap();
+                                    json_data = serde_json::to_string(&parsed).unwrap_or("{}".to_string());
                                 }
                                 output
                                     .write(json_data.as_bytes())
@@ -188,13 +185,13 @@ fn main() {
                             }
                             OutputFormat::JSON => {
                                 if normalize {
-                                    json_list.push(JsonRecord::Normalize(parsed.normalize()));
+                                    json_list.push(JsonRecord::Normalize(parsed.flaten()));
                                 } else {
                                     json_list.push(JsonRecord::Raw(parsed));
                                 }
                             }
                             OutputFormat::CSV => {
-                                if parsed.normalize().len() > 0 {
+                                if parsed.flaten().len() > 0 {
                                     output
                                         .write(output_data_csv(parsed).as_bytes())
                                         .expect("Error Writing Data !");
@@ -232,7 +229,7 @@ fn main() {
         }
     }
     if let OutputFormat::JSON = output_format {
-        let json_data = serde_json::to_string(&json_list).unwrap();
+        let json_data = serde_json::to_string(&json_list).unwrap_or("{}".to_string());
         output
             .write(json_data.as_bytes())
             .expect("Error Writing Data !");

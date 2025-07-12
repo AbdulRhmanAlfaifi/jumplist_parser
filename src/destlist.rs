@@ -17,7 +17,7 @@ use winparsingtools::{
     utils::{read_utf16_string, read_utf8_string},
 };
 
-use crate::_Normalize;
+use crate::Flaten;
 
 /// Represents the header of a `DestList` stream.
 #[derive(Debug, Serialize)]
@@ -361,9 +361,9 @@ impl Normalize for DestListEntry {
     }
 }
 
-impl _Normalize for DestList {
+impl Flaten for DestList {
     /// Normalizes all entries and returns a list of `key` and `value` maps.
-    fn normalize(&self) -> Vec<HashMap<String, String>> {
+    fn flaten(&self) -> Vec<HashMap<String, String>> {
         let mut results: Vec<HashMap<String, String>> = Vec::new();
         for entry in &self.entries {
             results.push(entry.normalize());
