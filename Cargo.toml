@@ -7,7 +7,7 @@ description = "A Rust library to parse Windows Jumplist files (automaticDestinat
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/AbdulRhmanAlfaifi/jumplist_parser"
 homepage = "https://github.com/AbdulRhmanAlfaifi/jumplist_parser"
-keywords = ["jumplist", "windows", "forensics", "lnk", "parser", "dfir", "blueteam", "artifacts"]
+keywords = ["jumplist", "windows", "forensics", "dfir", "artifacts"]
 categories = ["parser-implementations", "filesystem", "command-line-utilities", "parsing"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
