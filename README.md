@@ -24,7 +24,7 @@ These files contain structured metadata such as:
 - Pinned items
 - And many more!
 
-Jumplists are extremely useful in **incident response**, **timeline analysis**, and **user activity reconstruction**. If you want to know more about this artifact, I wrote a blog post about its structure here: https://u0041.co
+Jumplists are extremely useful in **incident response**, **timeline analysis**, and **user activity reconstruction**. If you want to know more about this artifact, I wrote a blog post about its structure here: [u0041.co](https://u0041.co/posts/articals/jumplist-files-artifacts/)
 
 ## 📦 Installation
 
@@ -93,4 +93,6 @@ Licensed under either of:
 * Apache License, Version 2.0
 
 ## 📚 References
-* https://u0041.co
+* [My blog post for Jumplist artifact - u0041.co](https://u0041.co/posts/articals/jumplist-files-artifacts/)
+* [LNK Strcuture](https://u0041.co/posts/articals/lnk-files-artifact/)
+* [LNK Parser](https://github.com/AbdulRhmanAlfaifi/lnk_parser)

@@ -7,7 +7,7 @@ use lnk_parser::LNKParser;
 use serde::{Serialize, Serializer};
 use winparsingtools::structs::Guid;
 use std::collections::HashMap;
-use std::io::{Cursor, Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 
 use crate::Flaten;
 use crate::errors::JumplistParserError;
@@ -142,151 +142,125 @@ impl CustomDestinations {
     pub fn from_reader<R: Read + Seek>(reader: &mut R) -> Result<Self, JumplistParserError> {
         let header = CustomDestinationsHeader::from_reader(reader)?;
         let mut categories = Vec::new();
-
-        for _ in 0..header.num_of_cat {
-            let r#type = reader.read_u32::<LittleEndian>().map_err(|e| {
+    
+        fn read_guid_and_validate<R: Read + Seek>(
+            reader: &mut R,
+            category: &str,
+        ) -> Result<LNKParser, JumplistParserError> {
+            let mut guid_data = [0; 16];
+            reader.read_exact(&mut guid_data).map_err(|e| {
                 JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
             })?;
-            let r#type = match r#type {
-                0x00 => CatagoryType::Custom,
-                0x01 => CatagoryType::Known,
-                0x02 => CatagoryType::Task,
-                x => {
+    
+            let guid = Guid::from_buffer(&guid_data).map_err(|e| {
+                JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
+            })?;
+    
+            if guid.to_string() != "00021401-0000-0000-C000-000000000046" {
+                return Err(JumplistParserError::FileStructure(
+                    format!("{category} Category with unknown entry GUID '{}'", guid),
+                    line!(),
+                    file!().to_string(),
+                ));
+            }
+    
+            LNKParser::from_reader(reader).map_err(|e| {
+                JumplistParserError::LnkEntry(e.to_string(), line!(), file!().to_string())
+            })
+        }
+    
+        fn parse_lnk_entries<R: Read + Seek>(
+            reader: &mut R,
+            count: u32,
+            category: &str,
+        ) -> Result<Vec<LNKParser>, JumplistParserError> {
+            let mut entries = Vec::with_capacity(count as usize);
+            for _ in 0..count {
+                entries.push(read_guid_and_validate(reader, category)?);
+            }
+            Ok(entries)
+        }
+    
+        for _ in 0..header.num_of_cat {
+            let r#type = match reader.read_u32::<LittleEndian>() {
+                Ok(0x00) => CatagoryType::Custom,
+                Ok(0x01) => CatagoryType::Known,
+                Ok(0x02) => CatagoryType::Task,
+                Ok(x) => {
                     return Err(JumplistParserError::FileStructure(
                         format!("CatagoryType unknown '{}'", x),
                         line!(),
                         file!().to_string(),
                     ))
                 }
+                Err(e) => {
+                    return Err(JumplistParserError::FileStructure(
+                        e.to_string(),
+                        line!(),
+                        file!().to_string(),
+                    ))
+                }
             };
-
-            if r#type == CatagoryType::Custom {
-                let name_len = reader.read_u16::<LittleEndian>().ok().unwrap();
-                let name = read_utf16_string(reader, Some(name_len as usize)).ok();
-                let num_of_entries = reader.read_u32::<LittleEndian>().ok();
-
-                let mut entries = vec![];
-                for _ in 0..num_of_entries.unwrap() {
-                    // Ignore the Classs ID. From my testing this is always a LNK strcuture, however it should be checked if it is '00021401-0000-0000-c000-000000000046'
-                    // Then it is a LNK file, otherwise it is a shellitem.
-                    // reader.seek(SeekFrom::Current(16)).map_err(|e| {
-                    //     JumplistParserError::FileStructure(
-                    //         e.to_string(),
-                    //         line!(),
-                    //         file!().to_string(),
-                    //     )
-                    // })?;
-
-                    let mut guid_data = [0;16];
-                    reader.read_exact(&mut guid_data).map_err(|e| {
-                        JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
-                    })?;
-
-                    let mut r = Cursor::new(guid_data);
-                    let guid = Guid::from_reader(&mut r).map_err(|e| {
-                        JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
-                    })?;
-                    
-                    // Check if the GUID is the expected one for LNK entries
-                    if guid.to_string() != "00021401-0000-0000-C000-000000000046" {
-                        return Err(JumplistParserError::FileStructure(
-                            format!("Custom Category with unknown entry GUID '{}'", guid),
-                            line!(),
-                            file!().to_string(),
-                        ));
-                    }
-
-                    let lnk_entry = LNKParser::from_reader(reader).map_err(|e| {
-                        JumplistParserError::LnkEntry(e.to_string(), line!(), file!().to_string())
-                    })?;
-                    entries.push(lnk_entry);
+    
+            match r#type {
+                CatagoryType::Custom => {
+                    let name_len = reader.read_u16::<LittleEndian>().ok().unwrap();
+                    let name = read_utf16_string(reader, Some(name_len as usize)).ok();
+                    let num_of_entries = reader.read_u32::<LittleEndian>().ok();
+                    let entries = parse_lnk_entries(reader, num_of_entries.unwrap(), "Custom")?;
+    
+                    categories.push(Catagory {
+                        r#type,
+                        name,
+                        num_of_entries,
+                        entries: Some(entries),
+                        id: None,
+                    });
                 }
-
-                categories.push(Catagory {
-                    r#type,
-                    name,
-                    num_of_entries,
-                    entries: Some(entries),
-                    id: None,
-                });
-            } else if r#type == CatagoryType::Known {
-                let id = reader.read_i32::<LittleEndian>().map_err(|e| {
-                    JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
-                })?;
-
-                let id = match id {
-                    1 => CategoryID::Frequent,
-                    2 => CategoryID::Recent,
-                    -1 => CategoryID::None,
-                    x => CategoryID::Unknown(x),
-                };
-
-                categories.push(Catagory {
-                    r#type,
-                    name: None,
-                    num_of_entries: None,
-                    id: Some(id),
-                    entries: None,
-                });
-            } else if r#type == CatagoryType::Task {
-                let num_of_entries = reader.read_u32::<LittleEndian>().ok();
-
-                let mut entries = vec![];
-                for _ in 0..num_of_entries.unwrap() {
-                    // Ignore the Classs ID. From my testing this is always a LNK strcuture, however it should be checked if it is '00021401-0000-0000-c000-000000000046'
-                    // Then it is a LNK file, otherwise it is a shellitem.
-                    // reader.seek(SeekFrom::Current(16)).map_err(|e| {
-                    //     JumplistParserError::FileStructure(
-                    //         e.to_string(),
-                    //         line!(),
-                    //         file!().to_string(),
-                    //     )
-                    // })?;
-
-                    let mut guid_data = [0;16];
-                    reader.read_exact(&mut guid_data).map_err(|e| {
+                CatagoryType::Known => {
+                    let id = match reader.read_i32::<LittleEndian>().map_err(|e| {
                         JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
-                    })?;
-
-                    let mut r = Cursor::new(guid_data);
-                    let guid = Guid::from_reader(&mut r).map_err(|e| {
-                        JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
-                    })?;
-
-                    // Check if the GUID is the expected one for LNK entries
-                    if guid.to_string() != "00021401-0000-0000-C000-000000000046" {
-                        return Err(JumplistParserError::FileStructure(
-                            format!("Task Category with unknown entry GUID '{}'", guid),
-                            line!(),
-                            file!().to_string(),
-                        ));
-                    }
-
-                    let lnk_entry = LNKParser::from_reader(reader).map_err(|e| {
-                        JumplistParserError::LnkEntry(e.to_string(), line!(), file!().to_string())
-                    })?;
-                    entries.push(lnk_entry);
+                    })? {
+                        1 => CategoryID::Frequent,
+                        2 => CategoryID::Recent,
+                        -1 => CategoryID::None,
+                        x => CategoryID::Unknown(x),
+                    };
+    
+                    categories.push(Catagory {
+                        r#type,
+                        name: None,
+                        num_of_entries: None,
+                        id: Some(id),
+                        entries: None,
+                    });
                 }
-                categories.push(Catagory {
-                    r#type,
-                    name: None,
-                    num_of_entries,
-                    entries: Some(entries),
-                    id: None,
-                });
+                CatagoryType::Task => {
+                    let num_of_entries = reader.read_u32::<LittleEndian>().ok();
+                    let entries = parse_lnk_entries(reader, num_of_entries.unwrap(), "Task")?;
+    
+                    categories.push(Catagory {
+                        r#type,
+                        name: None,
+                        num_of_entries,
+                        entries: Some(entries),
+                        id: None,
+                    });
+                }
             }
-
-            // skip footer
+    
+            // Skip footer
             reader.seek(SeekFrom::Current(4)).map_err(|e| {
                 JumplistParserError::FileStructure(e.to_string(), line!(), file!().to_string())
             })?;
         }
-
-        Ok(CustomDestinations {
-            header,
+    
+        Ok(Self {
             entries: categories,
+            header,
         })
     }
+    
 }
 
 impl Flaten for CustomDestinations {
