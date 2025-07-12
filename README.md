@@ -1,13 +1,13 @@
 # Jumplist Parser
 <div align="center">
-  <a href="https://crates.io/crates/lnk_parser">
-    <img src="https://img.shields.io/crates/v/lnk_parser" alt="Crates.io">
+  <a href="https://crates.io/crates/jumplist_parser">
+    <img src="https://img.shields.io/crates/v/jumplist_parser" alt="Crates.io">
   </a>
-  <a href="https://docs.rs/lnk_parser">
-    <img src="https://docs.rs/lnk_parser/badge.svg" alt="Docs.rs">
+  <a href="https://docs.rs/jumplist_parser">
+    <img src="https://docs.rs/jumplist_parser/badge.svg" alt="Docs.rs">
   </a>
   <a href="#license">
-    <img src="https://img.shields.io/crates/l/lnk_parser" alt="License">
+    <img src="https://img.shields.io/crates/l/jumplist_parser" alt="License">
   </a>
 </div>
 
