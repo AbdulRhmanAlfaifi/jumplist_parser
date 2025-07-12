@@ -7,7 +7,7 @@
     <img src="https://docs.rs/jumplist_parser/badge.svg" alt="Docs.rs">
   </a>
   <a href="#license">
-    <img src="https://img.shields.io/crates/l/jumplist_parser" alt="License">
+    <img src="https://img.shields.io/crates/l/jumplist_parser/0.1.0" alt="License">
   </a>
 </div>
 
